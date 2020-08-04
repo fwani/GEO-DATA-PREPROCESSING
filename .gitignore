@@ -1,0 +1,10 @@
+*.pyc
+*.swp
+*.csv
+
+.idea/
+
+thirdparty/
+venv/
+
+data/
