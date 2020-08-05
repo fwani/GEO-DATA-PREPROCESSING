@@ -2,8 +2,7 @@ import os
 import glob
 import re
 import pathlib
-
-from pyspark.sql import SparkSession
+import csv
 
 # 원본 데이터는 cp949 로 포멧팅되어 있음
 # 서비스에 올리기 위해 utf-8 로 변경
@@ -76,34 +75,23 @@ buga_fields = [
     '공동주택여부'
 ]
 
-spark = SparkSession.builder \
-    .master("local") \
-    .appName("format converter") \
-    .getOrCreate()
-
-df_reader = spark.read.format('csv') \
-        .option('header', False) \
-        .option('delimiter', '|') \
-        .option('encoding', 'cp949')
-
 for f_path in downloaded_files:
 
     print(f_path)
     if dorocode in f_path:
-        df = df_reader.load(f_path).toDF(*dorocode_fields)
+        field = dorocode_fields
     elif juso in f_path:
-        df = df_reader.load(f_path).toDF(*juso_fields)
+        field = juso_fields
     elif jibeon in f_path:
-        df = df_reader.load(f_path).toDF(*jibeon_fields)
+        field = jibeon_fields
     elif buga in f_path:
-        df = df_reader.load(f_path).toDF(*buga_fields)
+        field = buga_fields
     else:
         continue
 
-    df2 = df.toPandas().to_csv(
-            os.path.join(export_path, f_path.rsplit('/')[-1].replace('.txt', '.csv')),
-            sep='|',
-            encoding='utf-8',
-            index=False)
-
-
+    csv_reader = csv.reader(open(f_path, 'r', encoding='cp949'), delimiter='|')
+    data = [r for r in csv_reader]
+    with open(os.path.join(export_path, f_path.rsplit('/')[-1].replace('.txt', '.csv')), 'w', encoding='utf-8') as f:
+        cw = csv.writer(f, delimiter='|')
+        cw.writerow(field)
+        cw.writerows(data)
