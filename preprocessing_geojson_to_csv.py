@@ -3,7 +3,7 @@ import glob
 import json
 import pathlib
 import csv
-
+from shapely.geometry import shape
 
 home = os.getenv('GEO_DATA_HOME')
 file_paths = glob.glob(os.path.join(home, 'data/geojson/*.geojson'))
@@ -20,7 +20,8 @@ for f_path in file_paths:
     values = []
     for feature in tmp['features']:
         val_tmp = list(feature['properties'].values())
-        val_tmp.append(json.dumps(feature['geometry'], ensure_ascii=False))
+        val_tmp.append(shape(feature['geometry']).wkt)
+        # val_tmp.append(json.dumps(feature['geometry'], ensure_ascii=False))
         values.append(val_tmp)
 
     with open(os.path.join(home, export_path, '{}.csv'.format(name)), 'w', encoding='utf-8') as f:

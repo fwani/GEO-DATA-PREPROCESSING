@@ -1,27 +1,31 @@
-# coding: utf-8
 import os
-import pandas as pd
-import geopandas as gpd
+import pyspark.sql.functions as F
 
-from shapely import wkt
+from pyspark.sql import SparkSession
+from geospark.register import GeoSparkRegistrator
 
 home = os.getenv('GEO_DATA_HOME')
 spark_home = os.getenv('SPARK_HOME')
-export_path = os.path.join(home, 'data/dong')
+export_path = os.path.join(home, 'data/dong/')
 
-dorocode_df = pd.read_csv(os.path.join(home, 'data/address/개선_도로명코드_전체분.csv'), sep='|', encoding='utf-8')
-juso_df = pd.read_csv(os.path.join(home, 'data/address/주소_서울특별시.csv'), sep='|', encoding='utf-8')
-jiri_df = pd.read_csv(os.path.join(home, 'data/jiri/서울특별시.csv'), sep='|', encoding='utf-8')
-jiri_df['GEOMETRY'] = jiri_df['GEOMETRY'].apply(wkt.loads)
-jiri_df = gpd.GeoDataFrame(jiri_df, crs='epsg:4326')
+spark = SparkSession.builder \
+    .master("local") \
+    .appName("format converter") \
+    .getOrCreate()
 
-joined_df = pd.merge(dorocode_df, juso_df, on=['도로명코드', '읍면동일련번호'], how='left')
-joined_df = pd.merge(joined_df, jiri_df, left_on='기초구역번호', right_on='BAS_ID', how='left')
+GeoSparkRegistrator.registerAll(spark)
 
-print(joined_df.dropna(subset=['GEOMETRY']))
+@F.udf('string')
+def to_geojson(geo_data):
+    ret = {"type": "Feature", "properties": {}, "geometry": None}
+    ret['geometry'] = shapely.geometry.mapping(geo_data)
+    return json.dumps(ret, ensure_ascii=False)
 
+df_reader = spark.read.format('csv') \
+    .option('header', True) \
+    .option('delimiter', '|')
 
-'''
+dorocode_df = df_reader.load(os.path.join(home, 'data/address/*도로명코드_*.csv'))
 sido_list = dorocode_df.select('시도명').distinct().collect()
 for sido in sido_list[:1]:
     juso_df = df_reader.load(os.path.join(home, 'data/address/주소_{}.csv'.format(sido['시도명'])))
@@ -48,7 +52,7 @@ for sido in sido_list[:1]:
 #           sep='|',
 #           encoding='utf-8',
 #           index=False)
-'''
+
 # 시도
 '''
 select_cols = ['시도명', '시도명_로마자', 'GEOMETRY']
