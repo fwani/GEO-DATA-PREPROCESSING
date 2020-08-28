@@ -21,7 +21,7 @@ def run(args):
 
     # create 행정구역 tables
     print("Create tables to [{}]".format(args.database))
-    cur.execute(open(os.path.join(home, 'create_dministrative_district_table.sql'), 'r').read())
+    cur.execute(open(os.path.join(home, 'sql/create_dministrative_district_table_for_build.sql'), 'r').read())
 
 
 if __name__ == "__main__":

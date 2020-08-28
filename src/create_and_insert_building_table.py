@@ -12,13 +12,12 @@ import json
 
 def run(args):
     home = os.getenv('GEO_DATA_HOME')
-    downloaded_files = glob.glob(os.path.join(home, 'data/address_cp949/*.txt'))
+    downloaded_files = glob.glob(os.path.join(args.data_path, '*.txt'))
 
     prefix = {
-        0: '도로명코드_',
-        1: '주소_',
-        2: '지번_',
-        3: '부가정보_'
+        0: 'road_code_',
+        1: 'build_',
+        2: 'jibun_',
     }
 
     sorted_files = []
@@ -36,7 +35,7 @@ def run(args):
         conn = psycopg2.connect(host=args.host, port=args.port, user=args.user, password=args.password)
         conn.autocommit = True
         cur = conn.cursor()
-        dbname = 'geodb'
+        dbname = 'build_db'
         print("Drop Database [{}]".format(dbname))
         cur.execute("""
             DROP DATABASE IF EXISTS {}
@@ -53,7 +52,7 @@ def run(args):
 
     # create tables
     print("Create tables to [{}]".format(dbname))
-    cur.execute(open(os.path.join(home, 'create_juso_table.sql'), 'r').read())
+    cur.execute(open(os.path.join(home, 'sql/create_building_tables.sql'), 'r').read())
 
     base_insert_sql = "INSERT INTO {0} VALUES {1}"
     print(base_insert_sql)
@@ -63,11 +62,9 @@ def run(args):
         if k == 0:
             table = '도로명코드'
         elif k == 1:
-            table = '도로명주소'
+            table = '건물정보'
         elif k == 2:
-            table = '지번'
-        elif k == 3:
-            table = '부가정보'
+            table = '관련지번'
         else:
             continue
 
@@ -114,6 +111,10 @@ if __name__ == "__main__":
                         required=False,
                         type=str,
                         help='PostgreSQL database name')
+    parser.add_argument('--data-path',
+                        required=True,
+                        type=str,
+                        help='Inserted data path')
 
     parsed_args = parser.parse_args()
     print(parsed_args)
