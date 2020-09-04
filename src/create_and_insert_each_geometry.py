@@ -21,8 +21,9 @@ def insert_table(cur, df, base_insert_sql, table_name):
     for row in df.to_numpy():
         tmp = [r.strip() for r in row[:-1]]
         geometry = row[-1].wkt
+        cent = row[-1].centroid.wkt
 
-        row = tmp + [geometry]
+        row = tmp + [geometry, cent]
 
         value_format = "(" + ', '.join(['%s'] * len(row)) + ")"
         all_rows.append(cur.mogrify(value_format, row).decode('utf-8'))
